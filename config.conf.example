@@ -1,0 +1,3 @@
+[config]
+BOT_TELE = bot_token
+CHAT_ID = chatid
