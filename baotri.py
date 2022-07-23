@@ -3,96 +3,33 @@
 '''Tự động đăng nhập facebook
 '''
 import os
-import logging
 
 from time import sleep
-
 from datetime import datetime
 
 from configparser import ConfigParser
 from webdriver_manager.chrome import ChromeDriverManager
-import sentry_sdk
 
-import winsound
+# import winsound
 
 import requests
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.firefox.options import Options
+
+from common_utils import (
+    thiet_lap_logging, tam_ngung_va_tim, tam_ngung_den_khi,
+    tam_ngung_va_tim_danh_sach,
+)
 
 
-class CustomLogFilter(logging.Filter):
-    def filter(self, record):
-        if not hasattr(record, 'cookies_name'):
-            record.cookies_name = EXTRA.get('cookies_name')
-        return True
-
-
-EXTRA = dict(cookies_name=None)
 TESTING = None
 # URL = 'https://gleam.io/L8Tok/lixinft-giveaway'
-URL = 'https://online.immi.gov.au'
+# URL = 'https://online.immi.gov.au'
+URL = 'https://onlineservices.immigration.govt.nz/'
 NAME = 'tool_auto'
 CONFIG_FILE = 'config.conf'
-TELE_CONF = 'tele_config'
-
-
-def thiet_lap_logging(name):
-    sentry_sdk.init(
-        'https://2e084979867c4e8c83f0b3b8062afc5b@o1086935.'
-        'ingest.sentry.io/6111285',
-        traces_sample_rate=1.0,
-    )
-
-    log_format = ' - '.join([
-        '%(asctime)s',
-        '%(name)s',
-        '%(levelname)s',
-        # '%(cookies_name)s',
-        '%(message)s',
-    ])
-    formatter = logging.Formatter(log_format)
-    file_handles = logging.FileHandler(
-        filename='%s.log' % (datetime.now().strftime("%d-%m-%Y")),
-        mode='a',
-        encoding='utf-8',
-    )
-    file_handles.setFormatter(formatter)
-
-    syslog = logging.StreamHandler()
-    syslog.setFormatter(formatter)
-
-    logger = logging.getLogger(name)
-    logger.setLevel(logging.INFO)
-    logger.addFilter(CustomLogFilter())
-
-    logger.addHandler(syslog)
-    if not TESTING:
-        logger.addHandler(file_handles)
-
-    return logger
-
-
-def tam_ngung_den_khi(driver, _xpath):
-    '''Hàm tạm ngưng đến khi xuất hiện đường dẫn xpath
-    '''
-    _tam_ngung = WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((
-            By.XPATH,
-            _xpath,
-        )),
-    )
-    return _tam_ngung
-
-
-def tam_ngung_va_tim(driver, _xpath):
-    '''Hàm tạm ngưng đến khi xuất hiện đường dẫn xpath và chọn xpath đó
-    '''
-    tam_ngung_den_khi(driver, _xpath)
-    return driver.find_element(by='xpath', value=_xpath)
+TELE_CONF = 'tele_config_2'
+ALARM = False
 
 
 def chay_trinh_duyet(headless=True):
@@ -114,49 +51,58 @@ def chay_trinh_duyet(headless=True):
     return _driver
 
 
-def mo_website(_driver, url):
-    '''Mở thử website
+def bao_tri(_driver, url):
+    '''Mở website và xem khi nào hết bảo tri
     '''
-    if os.path.exists(CONFIG_FILE):
-        LOGGER.info('Load config')
-        CONFIG = ConfigParser()
-        CONFIG.read(CONFIG_FILE)
-        BOT_TELE = CONFIG.get(TELE_CONF, 'BOT_TELE')
-        CHAT_ID = CONFIG.get(TELE_CONF, 'CHAT_ID')
-
     # Mở trang
     _driver.get(url)
 
-    # Dang nhap
+    # Nhập thông tin tài khoản
     LOGGER.info('Load user config')
-    CONFIG = ConfigParser()
-    CONFIG.read(CONFIG_FILE)
     user = CONFIG.get('user_1_config', 'USER')
     pass_ = CONFIG.get('user_1_config', 'PASS')
-    username = tam_ngung_va_tim(_driver, '/html/body/form/div/div[1]/div[1]/div/input')
+    username = tam_ngung_va_tim(
+        _driver,
+        '/html/body/form/div/div[1]/div[1]/div/input',
+    )
     username.send_keys(user)
-    password = _driver.find_element(by='xpath', value='/html/body/form/div/div[1]/div[2]/div/input')
+    password = _driver.find_element(
+        by='xpath',
+        value='/html/body/form/div/div[1]/div[2]/div/input',
+    )
     password.send_keys(pass_)
-    login = _driver.find_element(by='xpath', value='/html/body/form/div/div[2]/button[2]')
+    # Đăng nhập
+    login = _driver.find_element(
+        by='xpath',
+        value='/html/body/form/div/div[2]/button[2]',
+    )
     login.click()
+
+    # Ấn nút continue
     nut_continue = tam_ngung_va_tim(_driver, '/html/body/form/div/div/button')
     nut_continue.click()
+
+    # Kiểm tra trang bảo trì
     while True:
-        trang_thong_bao = tam_ngung_va_tim(_driver, '/html/body/table/tbody/tr[2]/td[2]/table/tbody/tr/td/h2')
-        print(trang_thong_bao.text)
-        if 'ImmiAccount is currently unavailable for planned system maintenance' not in trang_thong_bao.text:
-            print('Mat thong bao')
+        trang_thong_bao = tam_ngung_va_tim(
+            _driver,
+            '/html/body/table/tbody/tr[2]/td[2]/table/tbody/tr/td/h2',
+        )
+        LOGGER.info(trang_thong_bao.text)
+        thong_bao_bao_tri = 'ImmiAccount is currently unavailable for' \
+            ' planned system maintenance'
+        if thong_bao_bao_tri not in trang_thong_bao.text:
+            LOGGER.info('Mất thông báo')
             while True:
                 LOGGER.info('Gửi thông báo qua telegram')
-                tele_url = f'https://api.telegram.org/bot{BOT_TELE}/sendMessage'
-                params = {
-                    'chat_id': CHAT_ID,
-                    'text': 'IMMI HẾT BẢO TRÌ',
-                    }
-                requests.post(url=tele_url, data=params)
-                LOGGER.info('Phat nhac')
-                winsound.PlaySound('nhac.wav', winsound.SND_FILENAME)
-                LOGGER.info('xong')
+                try:
+                    requests.post(url=TELE_URL, data=PARAMS)
+                    LOGGER.info('Phát nhạc')
+                    # winsound.PlaySound('nhac.wav', winsound.SND_FILENAME)
+                    LOGGER.info('xong')
+                except Exception as error:
+                    LOGGER.exception(error)
+                    break
         else:
             LOGGER.info('Đang bảo trì')
             LOGGER.info('15s reload')
@@ -168,9 +114,107 @@ def mo_website(_driver, url):
     return _driver
 
 
+def visa2(_driver, url):
+    '''Trang đăng ký visa new zealand
+    '''
+    # Mở trang
+    _driver.get(url)
+
+    # Nhập thông tin tài khoản
+    LOGGER.info('Load user config')
+    user = CONFIG.get('user_3_config', 'USER')
+    pass_ = CONFIG.get('user_3_config', 'PASS')
+    username = tam_ngung_va_tim(
+        _driver,
+        '//input[@name="username"]',
+    )
+    username.send_keys(user)
+    password = _driver.find_element(
+        by='xpath',
+        value='//input[@name="password"]',
+    )
+    password.send_keys(pass_)
+    # Đăng nhập
+    login = _driver.find_element(
+        by='xpath',
+        value='//input[@type="submit"]',
+    )
+    login.click()
+
+    # Đợi đến khi hiển trị trang apply online
+    tam_ngung_den_khi(_driver, '//div[@class="block-form"]')
+
+    # Lấy các danh mục được apply
+    cac_danh_muc = _driver.find_elements(
+        by='xpath',
+        value='//div[@class="block-form-content"]',
+    )
+    LOGGER.info('Chọn danh mục cần apply')
+    for stt, danh_muc in enumerate(cac_danh_muc):
+        tieu_de = danh_muc.find_element(
+            by='xpath',
+            value='h3',
+        )
+        LOGGER.info('%d - %s', stt, tieu_de.text)
+
+    # Tự chọn danh mục cần apply
+    # while True:
+    #     stt_apply = input('Nhập số danh mục cần apply: ')
+    #     if not str(stt_apply).isdigit():
+    #         LOGGER.info('STT phải là 1 số nguyên')
+    #         continue
+
+    #     stt_apply = int(stt_apply)
+    #     if stt_apply < 0 or stt_apply + 1 > len(cac_danh_muc):
+    #         LOGGER.info(
+    #             'STT phải trong khoảng 0 đến %d',
+    #             len(cac_danh_muc) - 1,
+    #         )
+    #         continue
+
+    #     break
+
+    danh_muc = cac_danh_muc[1]
+    tieu_de = danh_muc.find_element(
+        by='xpath',
+        value='h3',
+    )
+    duong_dan = danh_muc.find_element(
+        by='xpath',
+        value='a',
+    )
+    LOGGER.info('Apply vào: %s', tieu_de.text)
+    duong_dan.click()
+
+    # Lấy thông tin khu vực được phép apply
+    ds_khu_vuc = tam_ngung_va_tim_danh_sach(
+        _driver,
+        '//div[@class="category-item"]',
+    )
+    LOGGER.info('Tìm được %d khu vực', len(ds_khu_vuc))
+
+    LOGGER.info('Bảng danh sách tình trạng các khu vực:')
+    for stt, khu_vuc in enumerate(ds_khu_vuc):
+        ten_khu_vuc = khu_vuc.find_element(
+            by='xpath',
+            value='.//span[@id="'
+            f'ContentPlaceHolder1_countryRepeater_countryName_{stt}"]',
+        )
+        tinh_trang = khu_vuc.find_element(
+            by='xpath',
+            value='.//span[@id="'
+            f'ContentPlaceHolder1_countryRepeater_countryStatus_{stt}"]',
+        )
+        LOGGER.info('%s: %s (%s)', stt, ten_khu_vuc.text, tinh_trang.text)
+
+    input('Nhập enter để thoát: ')
+    return _driver
+
+
 if __name__ == '__main__':
     THOI_GIAN_HIEN_TAI = datetime.now()
     LOGGER = thiet_lap_logging(NAME)
+    LOGGER.info('*' * 50)
     LOGGER.info('Chạy chương trình')
 
     if os.path.exists(CONFIG_FILE):
@@ -180,18 +224,16 @@ if __name__ == '__main__':
         BOT_TELE = CONFIG.get(TELE_CONF, 'BOT_TELE')
         CHAT_ID = CONFIG.get(TELE_CONF, 'CHAT_ID')
         LOGGER.info('Gửi thông báo qua telegram')
-        tele_url = f'https://api.telegram.org/bot{BOT_TELE}/sendMessage'
-        params = {
+        TELE_URL = f'https://api.telegram.org/bot{BOT_TELE}/sendMessage'
+        PARAMS = {
             'chat_id': CHAT_ID,
             'text': f'Chạy tool auto: {THOI_GIAN_HIEN_TAI}',
         }
-        requests.post(url=tele_url, data=params)
+        requests.post(url=TELE_URL, data=PARAMS)
     DRIVER = None
 
     try:
-        LOGGER.info('*' * 50)
         LOGGER.info('Chạy thử chương trình')
-        LOGGER.info('*' * 50)
         HEADLESS = False
 
         DRIVER = chay_trinh_duyet(headless=HEADLESS)
@@ -204,25 +246,21 @@ if __name__ == '__main__':
             windowHandle='current',
         )
         LOGGER.info('Mở trang web')
-        DRIVER = mo_website(DRIVER, URL)
+        # DRIVER = bao_tri(DRIVER, URL)
+        DRIVER = visa2(DRIVER, URL)
         THOI_GIAN_XU_LY = datetime.now() - THOI_GIAN_HIEN_TAI
         LOGGER.info('Thời gian xử lý: %s', THOI_GIAN_XU_LY)
-        input("Ấn Enter để thoát: ")
-        
-    except Exception:
-        print('Không vào được trang 1')
-        while True:
-            LOGGER.info('Gửi thông báo qua telegram')
-            tele_url = f'https://api.telegram.org/bot{BOT_TELE}/sendMessage'
-            params = {
-                'chat_id': CHAT_ID,
-                'text': 'VISA_462_MỞ_CỔNG',
-                    }
-            requests.post(url=tele_url, data=params)
 
-            LOGGER.info('Phat nhac')
-            winsound.PlaySound('nhac.wav', winsound.SND_FILENAME)
-            LOGGER.info('xong')
+    except Exception as error:
+        LOGGER.exception(error)
+        if ALARM:
+            while True:
+                LOGGER.info('Gửi thông báo qua telegram')
+                requests.post(url=TELE_URL, data=PARAMS)
+
+                LOGGER.info('Phat nhac')
+                # winsound.PlaySound('nhac.wav', winsound.SND_FILENAME)
+                LOGGER.info('xong')
     finally:
         if DRIVER:
             DRIVER.close()
