@@ -1,3 +1,9 @@
-[config]
+[tele_config]
 BOT_TELE = bot_token
 CHAT_ID = chatid
+[tool_config]
+TASK_ID = 1
+HEADLESS = False
+[user_1_config]
+USER = username
+PASS = password
