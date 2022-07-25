@@ -127,46 +127,86 @@ def mo_website(_driver, url):
 
     # Dang nhap
     LOGGER.info('Load user config')
-    CONFIG = ConfigParser()
-    CONFIG.read(CONFIG_FILE)
     user = CONFIG.get('user_1_config', 'USER')
     pass_ = CONFIG.get('user_1_config', 'PASS')
-    username = tam_ngung_va_tim(_driver, '/html/body/form/div/div[1]/div[1]/div/input')
+    username = tam_ngung_va_tim(
+        _driver,
+        '/html/body/form/div/div[1]/div[1]/div/input',
+    )
     username.send_keys(user)
-    password = _driver.find_element(by='xpath', value='/html/body/form/div/div[1]/div[2]/div/input')
+    password = _driver.find_element(
+        by='xpath',
+        value='/html/body/form/div/div[1]/div[2]/div/input',
+    )
     password.send_keys(pass_)
-    login = _driver.find_element(by='xpath', value='/html/body/form/div/div[2]/button[2]')
+    login = _driver.find_element(
+        by='xpath',
+        value='/html/body/form/div/div[2]/button[2]',
+    )
     login.click()
     nut_continue = tam_ngung_va_tim(_driver, '/html/body/form/div/div/button')
     nut_continue.click()
-    nut_edit = tam_ngung_va_tim(_driver, '/html/body/form/section/div/div/div[3]/div/div[2]/div/div/div[2]/div/div[2]/div/div/div[2]/div/div/div[1]/div/div/button')
+    nut_edit = tam_ngung_va_tim(
+        _driver,
+        '/html/body/form/section/div/div/div[3]/div/div[2]/div/div/div[2]/'
+        'div/div[2]/div/div/div[2]/div/div/div[1]/div/div/button')
     nut_edit.click()
-    nut_next = tam_ngung_va_tim(_driver, '/html/body/form/div[1]/div/div/div[1]/section/div/div/div/div[7]/div/div/div/div[2]/button/span/span')
+    nut_next = tam_ngung_va_tim(
+        _driver,
+        '/html/body/form/div[1]/div/div/div[1]/section/div/div/div/div[7]/'
+        'div/div/div/div[2]/button/span/span')
     nut_next.click()
-    nut_next = tam_ngung_va_tim(_driver, '/html/body/form/div[1]/div/div/div[1]/section/div/div/div/div[7]/div/div/div/div[2]/button')
-    trang_hien_tai = _driver.find_element(by='xpath', value='/html/body/form/div[1]/div/div/div[1]/section/div/div/div/div[3]/div/div/div/span')
-    print(trang_hien_tai.text)
-    nut_next = tam_ngung_va_tim(_driver, '/html/body/form/div[1]/div/div/div[1]/section/div/div/div/div[7]/div/div/div/div[2]/button/span/span')
+    nut_next = tam_ngung_va_tim(
+        _driver,
+        '/html/body/form/div[1]/div/div/div[1]/section/div/div/div/div[7]/'
+        'div/div/div/div[2]/button')
+    trang_hien_tai = _driver.find_element(
+        by='xpath',
+        value='/html/body/form/div[1]/div/div/div[1]/section/div/div/div/'
+        'div[3]/div/div/div/span')
+    LOGGER.info(trang_hien_tai.text)
+    nut_next = tam_ngung_va_tim(
+        _driver,
+        '/html/body/form/div[1]/div/div/div[1]/section/div/div/div/div[7]/div'
+        '/div/div/div[2]/button/span/span')
     nut_next.click()
-    nut_next = tam_ngung_va_tim(_driver, '/html/body/form/div[1]/div/div/div[1]/section/div/div/div/div[7]/div/div/div/div[2]/button/span/span')
-    trang_hien_tai = _driver.find_element(by='xpath', value='/html/body/form/div[1]/div/div/div[1]/section/div/div/div/div[3]/div/div/div/span')
-    print(trang_hien_tai.text)
+    nut_next = tam_ngung_va_tim(
+        _driver,
+        '/html/body/form/div[1]/div/div/div[1]/section/div/div/div/div[7]/div'
+        '/div/div/div[2]/button/span/span')
+    trang_hien_tai = _driver.find_element(
+        by='xpath',
+        value='/html/body/form/div[1]/div/div/div[1]/section/div/div/div/'
+        'div[3]/div/div/div/span')
+    LOGGER.info(trang_hien_tai.text)
     nut_next.click()
-    nut_next = tam_ngung_va_tim(_driver, '/html/body/form/div[1]/div/div/div[1]/section/div/div/div/div[7]/div/div/div/div[2]/button/span/span')
-    trang_hien_tai = _driver.find_element(by='xpath', value='/html/body/form/div[1]/div/div/div[1]/section/div/div/div/div[3]/div/div/div/span')
-    print(trang_hien_tai.text)
+    nut_next = tam_ngung_va_tim(
+        _driver,
+        '/html/body/form/div[1]/div/div/div[1]/section/div/div/div/div[7]/div/'
+        'div/div/div[2]/button/span/span')
+    trang_hien_tai = _driver.find_element(
+        by='xpath',
+        value='/html/body/form/div[1]/div/div/div[1]/section/div/div/div/'
+        'div[3]/div/div/div/span')
+    LOGGER.info(trang_hien_tai.text)
     nut_next.click()
     while True:
         try:
-            thong_bao = tam_ngung_va_tim(_driver, '/html/body/form/div[1]/div/div/div[1]/section/div/div/div/div[2]/div/div/section/div/div')
+            thong_bao = tam_ngung_va_tim(
+                _driver,
+                '/html/body/form/div[1]/div/div/div[1]/section/div/div/div/'
+                'div[2]/div/div/section/div/div')
             print(thong_bao.text)
-            nut_next = tam_ngung_va_tim(_driver, '/html/body/form/div[1]/div/div/div[1]/section/div/div/div/div[7]/div/div/div/div[2]/button/span/span')
-            print('Doi 90s sau thu lai')
+            nut_next = tam_ngung_va_tim(
+                _driver,
+                '/html/body/form/div[1]/div/div/div[1]/section/div/div/div/'
+                'div[7]/div/div/div/div[2]/button/span/span')
+            print('Đợi 90s thử lại')
             sleep(90)
-            print('Thu lai')
+            print('Thử lại')
             nut_next.click()
         except Exception:
-            print('Mat thong bao')
+            print('Mất thông báo')
             while True:
                 LOGGER.info('Gửi thông báo qua telegram')
                 tele_url = f'https://api.telegram.org/bot{BOT_TELE}/sendMessage'

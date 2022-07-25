@@ -3,6 +3,7 @@
 '''Tự động đăng nhập facebook
 '''
 import os
+from platform import system
 
 from time import sleep
 from datetime import datetime
@@ -10,7 +11,8 @@ from datetime import datetime
 from configparser import ConfigParser
 from webdriver_manager.chrome import ChromeDriverManager
 
-# import winsound
+if system() == 'Windows':
+    import winsound
 
 import requests
 from selenium import webdriver
@@ -24,12 +26,12 @@ from common_utils import (
 
 TESTING = None
 # URL = 'https://gleam.io/L8Tok/lixinft-giveaway'
-# URL = 'https://online.immi.gov.au'
-URL = 'https://onlineservices.immigration.govt.nz/'
 NAME = 'tool_auto'
 CONFIG_FILE = 'config.conf'
 TELE_CONF = 'tele_config_2'
 ALARM = False
+TASK_ID = 1
+SLEEP_TIME = 90
 
 
 def chay_trinh_duyet(headless=True):
@@ -46,8 +48,133 @@ def chay_trinh_duyet(headless=True):
         options=options,
         service=service,
     )
+
+    # Đặt cửa sổ bằng nửa màn hình để debug
+    if not HEADLESS:
+        _driver.maximize_window()
+        size = _driver.get_window_size()
+        _driver.set_window_size(size['width'] / 2, size['height'])
+        _driver.set_window_position(
+            0,
+            0,
+            windowHandle='current',
+        )
+
     # Hàm đặt thời gian tải trang, dùng khi tải trang quá lâu
     # _driver.set_page_load_timeout(5)
+    return _driver
+
+
+def qua_trang_5(_driver, url):
+    '''Kiểm tra đến được trang 5
+    '''
+    # Mở trang
+    _driver.get(url)
+
+    # Nhập thông tin tài khoản
+    LOGGER.info('Load user config')
+    user = CONFIG.get('user_1_config', 'USER')
+    pass_ = CONFIG.get('user_1_config', 'PASS')
+    username = tam_ngung_va_tim(
+        _driver,
+        '/html/body/form/div/div[1]/div[1]/div/input',
+    )
+    username.send_keys(user)
+    password = _driver.find_element(
+        by='xpath',
+        value='/html/body/form/div/div[1]/div[2]/div/input',
+    )
+    password.send_keys(pass_)
+    # Đăng nhập
+    login = _driver.find_element(
+        by='xpath',
+        value='/html/body/form/div/div[2]/button[2]',
+    )
+    login.click()
+
+    # Ấn nút continue
+    nut_continue = tam_ngung_va_tim(_driver, '/html/body/form/div/div/button')
+    nut_continue.click()
+
+    # Ấn nút edit
+    nut_edit = tam_ngung_va_tim(
+        _driver,
+        '/html/body/form/section/div/div/div[3]/div/div[2]/div/div/div[2]/'
+        'div/div[2]/div/div/div[2]/div/div/div[1]/div/div/button')
+    nut_edit.click()
+
+    # Ấn nút next
+    nut_next = tam_ngung_va_tim(
+        _driver,
+        '/html/body/form/div[1]/div/div/div[1]/section/div/div/div/div[7]/'
+        'div/div/div/div[2]/button/span/span')
+    nut_next.click()
+    nut_next = tam_ngung_va_tim(
+        _driver,
+        '/html/body/form/div[1]/div/div/div[1]/section/div/div/div/div[7]/'
+        'div/div/div/div[2]/button')
+    trang_hien_tai = _driver.find_element(
+        by='xpath',
+        value='/html/body/form/div[1]/div/div/div[1]/section/div/div/div/'
+        'div[3]/div/div/div/span')
+    LOGGER.info(trang_hien_tai.text)
+    nut_next = tam_ngung_va_tim(
+        _driver,
+        '/html/body/form/div[1]/div/div/div[1]/section/div/div/div/div[7]/div'
+        '/div/div/div[2]/button/span/span')
+    nut_next.click()
+    nut_next = tam_ngung_va_tim(
+        _driver,
+        '/html/body/form/div[1]/div/div/div[1]/section/div/div/div/div[7]/div'
+        '/div/div/div[2]/button/span/span')
+    trang_hien_tai = _driver.find_element(
+        by='xpath',
+        value='/html/body/form/div[1]/div/div/div[1]/section/div/div/div/'
+        'div[3]/div/div/div/span')
+    LOGGER.info(trang_hien_tai.text)
+    nut_next.click()
+    nut_next = tam_ngung_va_tim(
+        _driver,
+        '/html/body/form/div[1]/div/div/div[1]/section/div/div/div/div[7]/div/'
+        'div/div/div[2]/button/span/span')
+    trang_hien_tai = _driver.find_element(
+        by='xpath',
+        value='/html/body/form/div[1]/div/div/div[1]/section/div/div/div/'
+        'div[3]/div/div/div/span')
+    LOGGER.info(trang_hien_tai.text)
+    nut_next.click()
+
+    # Kiểm tra trang 5
+    while True:
+        try:
+            thong_bao = tam_ngung_va_tim(
+                _driver,
+                '/html/body/form/div[1]/div/div/div[1]/section/div/div/div/'
+                'div[2]/div/div/section/div/div')
+            LOGGER.info(thong_bao.text)
+            nut_next = tam_ngung_va_tim(
+                _driver,
+                '/html/body/form/div[1]/div/div/div[1]/section/div/div/div/'
+                'div[7]/div/div/div/div[2]/button/span/span')
+            LOGGER.info('Đợi %ds thử lại', SLEEP_TIME)
+            sleep(SLEEP_TIME)
+            LOGGER.info('Thử lại')
+            nut_next.click()
+        except Exception:
+            LOGGER.info('Mất thông báo')
+            while True:
+                LOGGER.info('Gửi thông báo qua telegram')
+                PARAMS = {
+                    'chat_id': CHAT_ID,
+                    'text': 'VISA_462_MỞ_CỔNG',
+                    }
+                requests.post(url=TELE_URL, data=PARAMS)
+
+                LOGGER.info('Phát nhạc')
+                if system() == 'Windows':
+                    winsound.PlaySound('nhac.wav', winsound.SND_FILENAME)
+                LOGGER.info('Xong')
+
     return _driver
 
 
@@ -96,18 +223,23 @@ def bao_tri(_driver, url):
             while True:
                 LOGGER.info('Gửi thông báo qua telegram')
                 try:
+                    PARAMS = {
+                        'chat_id': CHAT_ID,
+                        'text': 'Hết bảo trì',
+                        }
                     requests.post(url=TELE_URL, data=PARAMS)
                     LOGGER.info('Phát nhạc')
-                    # winsound.PlaySound('nhac.wav', winsound.SND_FILENAME)
+                    if system() == 'Windows':
+                        winsound.PlaySound('nhac.wav', winsound.SND_FILENAME)
                     LOGGER.info('xong')
                 except Exception as error:
                     LOGGER.exception(error)
                     break
         else:
             LOGGER.info('Đang bảo trì')
-            LOGGER.info('15s reload')
-            sleep(15)
-            LOGGER.info('reload')
+            LOGGER.info('Thử lại sau %ds', SLEEP_TIME,)
+            sleep(SLEEP_TIME)
+            LOGGER.info('Reload')
             _driver.refresh()
             continue
 
@@ -223,31 +355,40 @@ if __name__ == '__main__':
         CONFIG.read(CONFIG_FILE)
         BOT_TELE = CONFIG.get(TELE_CONF, 'BOT_TELE')
         CHAT_ID = CONFIG.get(TELE_CONF, 'CHAT_ID')
-        LOGGER.info('Gửi thông báo qua telegram')
+        TASK_ID = int(CONFIG.get('tool_config', 'TASK_ID'))
         TELE_URL = f'https://api.telegram.org/bot{BOT_TELE}/sendMessage'
-        PARAMS = {
-            'chat_id': CHAT_ID,
-            'text': f'Chạy tool auto: {THOI_GIAN_HIEN_TAI}',
-        }
-        requests.post(url=TELE_URL, data=PARAMS)
     DRIVER = None
 
     try:
-        LOGGER.info('Chạy thử chương trình')
-        HEADLESS = False
+        LOGGER.info('Chạy chương trình')
+        if TASK_ID == 1:
+            MESSAGE = 'Chạy kiểm tra qua được trang 5'
+        if TASK_ID == 2:
+            MESSAGE = 'Chạy kiểm tra trang bảo trì'
+        if TASK_ID == 3:
+            MESSAGE = 'Chạy auto apply visa newzealand'
+        PARAMS = {
+            'chat_id': CHAT_ID,
+            'text': MESSAGE,
+        }
+        requests.post(url=TELE_URL, data=PARAMS)
+        HEADLESS = CONFIG.get('tool_config', 'HEADLESS')
 
         DRIVER = chay_trinh_duyet(headless=HEADLESS)
-        DRIVER.maximize_window()
-        SIZE = DRIVER.get_window_size()
-        DRIVER.set_window_size(SIZE['width'] / 2, SIZE['height'])
-        DRIVER.set_window_position(
-            0,
-            0,
-            windowHandle='current',
-        )
         LOGGER.info('Mở trang web')
-        # DRIVER = bao_tri(DRIVER, URL)
-        DRIVER = visa2(DRIVER, URL)
+        if TASK_ID == 1:
+            LOGGER.info('Chạy kiểm tra qua được trang 5')
+            URL = 'https://online.immi.gov.au'
+            DRIVER = qua_trang_5(DRIVER, URL)
+        if TASK_ID == 2:
+            LOGGER.info('Chạy kiểm tra trang bảo trì')
+            URL = 'https://online.immi.gov.au'
+            DRIVER = bao_tri(DRIVER, URL)
+        if TASK_ID == 3:
+            LOGGER.info('Chạy auto apply visa newzealand')
+            URL = 'https://onlineservices.immigration.govt.nz/'
+            DRIVER = visa2(DRIVER, URL)
+
         THOI_GIAN_XU_LY = datetime.now() - THOI_GIAN_HIEN_TAI
         LOGGER.info('Thời gian xử lý: %s', THOI_GIAN_XU_LY)
 
@@ -256,11 +397,16 @@ if __name__ == '__main__':
         if ALARM:
             while True:
                 LOGGER.info('Gửi thông báo qua telegram')
+                PARAMS = {
+                    'chat_id': CHAT_ID,
+                    'text': 'Không chạy được tool',
+                    }
                 requests.post(url=TELE_URL, data=PARAMS)
 
-                LOGGER.info('Phat nhac')
-                # winsound.PlaySound('nhac.wav', winsound.SND_FILENAME)
-                LOGGER.info('xong')
+                LOGGER.info('Phát nhạc')
+                if system() == 'Windows':
+                    winsound.PlaySound('nhac.wav', winsound.SND_FILENAME)
+                LOGGER.info('Xong')
     finally:
         if DRIVER:
             DRIVER.close()
