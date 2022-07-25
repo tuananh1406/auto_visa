@@ -10,6 +10,7 @@ from datetime import datetime
 
 from configparser import ConfigParser
 from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.firefox import GeckoDriverManager
 
 if system() == 'Windows':
     import winsound
@@ -17,6 +18,7 @@ if system() == 'Windows':
 import requests
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.firefox.options import Options as firefox_options
 
 from common_utils import (
     thiet_lap_logging, tam_ngung_va_tim, tam_ngung_den_khi,
@@ -34,23 +36,37 @@ TASK_ID = 1
 SLEEP_TIME = 90
 
 
-def chay_trinh_duyet(headless=True):
+def chay_trinh_duyet(browser='chrome', headless=True):
     '''Mở trình duyệt và trả về driver
     '''
-    options = webdriver.ChromeOptions()
-    options.headless = headless
-    options.add_experimental_option("excludeSwitches", ["enable-automation"])
-    options.add_experimental_option('useAutomationExtension', False)
-    options.add_argument("--disable-blink-features=AutomationControlled")
-    service = Service(ChromeDriverManager().install())
-    LOGGER.info('Chạy trình duyệt, headless=%s', headless)
-    _driver = webdriver.Chrome(
-        options=options,
-        service=service,
-    )
+    headless = bool(headless)
+    LOGGER.info('Chạy trình duyệt %s, headless=%s', browser, headless)
+    if browser == 'chrome':
+        options = webdriver.ChromeOptions()
+        options.headless = headless
+        options.add_experimental_option(
+            "excludeSwitches", ["enable-automation"])
+        options.add_experimental_option(
+            'useAutomationExtension', False)
+        options.add_argument(
+            "--disable-blink-features=AutomationControlled")
+        service = Service(ChromeDriverManager().install())
+        _driver = webdriver.Chrome(
+            options=options,
+            service=service,
+        )
+
+    if browser == 'firefox':
+        options = firefox_options()
+        options.headless = headless
+        service = Service(GeckoDriverManager().install())
+        _driver = webdriver.Firefox(
+            options=options,
+            service=service,
+        )
 
     # Đặt cửa sổ bằng nửa màn hình để debug
-    if not HEADLESS:
+    if HEADLESS:
         _driver.maximize_window()
         size = _driver.get_window_size()
         _driver.set_window_size(size['width'] / 2, size['height'])
@@ -343,6 +359,93 @@ def visa2(_driver, url):
     return _driver
 
 
+def tu_dong_dien(_driver, url):
+    '''Tự động điền trang 5 - 16
+    '''
+    # Mở trang
+    _driver.get(url)
+
+    # Nhập thông tin tài khoản
+    LOGGER.info('Load user config')
+    user = CONFIG.get('user_test', 'USER')
+    pass_ = CONFIG.get('user_test', 'PASS')
+    username = tam_ngung_va_tim(
+        _driver,
+        '/html/body/form/div/div[1]/div[1]/div/input',
+    )
+    username.send_keys(user)
+    password = _driver.find_element(
+        by='xpath',
+        value='/html/body/form/div/div[1]/div[2]/div/input',
+    )
+    password.send_keys(pass_)
+    # Đăng nhập
+    login = _driver.find_element(
+        by='xpath',
+        value='/html/body/form/div/div[2]/button[2]',
+    )
+    login.click()
+
+    # Ấn nút continue
+    nut_continue = tam_ngung_va_tim(_driver, '/html/body/form/div/div/button')
+    nut_continue.click()
+
+    # Ấn nút edit
+    nut_edit = tam_ngung_va_tim(
+        _driver,
+        '/html/body/form/section/div/div/div[3]/div/div[2]/div/div/div[2]/'
+        'div/div[2]/div/div/div[2]/div/div/div[1]/div/div/button')
+    nut_edit.click()
+
+    # Ấn nút next
+    nut_next = tam_ngung_va_tim(
+        _driver,
+        'id="_2a0b4d"',
+    )
+    nut_next.click()
+
+    # Đợi hiện nút next thì tìm số trang
+    nut_next = tam_ngung_va_tim(
+        _driver,
+        'id="_2a0bg4d"',
+    )
+    trang_hien_tai = _driver.find_element(
+        by='xpath',
+        value='/html/body/form/div[1]/div/div/div[1]/section/div/div/div/'
+        'div[3]/div/div/div/span')
+    LOGGER.info(trang_hien_tai.text)
+    nut_next = tam_ngung_va_tim(
+        _driver,
+        '/html/body/form/div[1]/div/div/div[1]/section/div/div/div/div[7]/div'
+        '/div/div/div[2]/button/span/span')
+    nut_next.click()
+    nut_next = tam_ngung_va_tim(
+        _driver,
+        '/html/body/form/div[1]/div/div/div[1]/section/div/div/div/div[7]/div'
+        '/div/div/div[2]/button/span/span')
+    trang_hien_tai = _driver.find_element(
+        by='xpath',
+        value='/html/body/form/div[1]/div/div/div[1]/section/div/div/div/'
+        'div[3]/div/div/div/span')
+    LOGGER.info(trang_hien_tai.text)
+    nut_next.click()
+    nut_next = tam_ngung_va_tim(
+        _driver,
+        '/html/body/form/div[1]/div/div/div[1]/section/div/div/div/div[7]/div/'
+        'div/div/div[2]/button/span/span')
+    trang_hien_tai = _driver.find_element(
+        by='xpath',
+        value='/html/body/form/div[1]/div/div/div[1]/section/div/div/div/'
+        'div[3]/div/div/div/span')
+    LOGGER.info(trang_hien_tai.text)
+    nut_next.click()
+
+    # Tự động điền trang 5
+
+    input()
+    return _driver
+
+
 if __name__ == '__main__':
     THOI_GIAN_HIEN_TAI = datetime.now()
     LOGGER = thiet_lap_logging(NAME)
@@ -367,6 +470,8 @@ if __name__ == '__main__':
             MESSAGE = 'Chạy kiểm tra trang bảo trì'
         if TASK_ID == 3:
             MESSAGE = 'Chạy auto apply visa newzealand'
+        if TASK_ID == 4:
+            MESSAGE = 'Chạy tự động điền từ trang 5'
         PARAMS = {
             'chat_id': CHAT_ID,
             'text': MESSAGE,
@@ -374,7 +479,10 @@ if __name__ == '__main__':
         requests.post(url=TELE_URL, data=PARAMS)
         HEADLESS = CONFIG.get('tool_config', 'HEADLESS')
 
-        DRIVER = chay_trinh_duyet(headless=HEADLESS)
+        DRIVER = chay_trinh_duyet(
+            browser=CONFIG.get('tool_config', 'BROWSER'),
+            headless=int(HEADLESS),
+        )
         LOGGER.info('Mở trang web')
         if TASK_ID == 1:
             LOGGER.info('Chạy kiểm tra qua được trang 5')
@@ -388,6 +496,10 @@ if __name__ == '__main__':
             LOGGER.info('Chạy auto apply visa newzealand')
             URL = 'https://onlineservices.immigration.govt.nz/'
             DRIVER = visa2(DRIVER, URL)
+        if TASK_ID == 4:
+            LOGGER.info('Chạy tự động điền từ trang 5')
+            URL = 'https://online.immi.gov.au'
+            DRIVER = tu_dong_dien(DRIVER, URL)
 
         THOI_GIAN_XU_LY = datetime.now() - THOI_GIAN_HIEN_TAI
         LOGGER.info('Thời gian xử lý: %s', THOI_GIAN_XU_LY)
@@ -408,5 +520,6 @@ if __name__ == '__main__':
                     winsound.PlaySound('nhac.wav', winsound.SND_FILENAME)
                 LOGGER.info('Xong')
     finally:
+        input()
         if DRIVER:
             DRIVER.close()
