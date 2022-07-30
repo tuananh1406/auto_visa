@@ -355,6 +355,47 @@ def visa2(_driver, url):
         )
         LOGGER.info('%s: %s (%s)', stt, ten_khu_vuc.text, tinh_trang.text)
 
+    # Kiểm tra location Việt Nam
+    while True:
+        stt_apply = 44
+        for stt, khu_vuc in enumerate(ds_khu_vuc):
+            if stt == stt_apply:
+                ten_khu_vuc = khu_vuc.find_element(
+                    by='xpath',
+                    value='.//span[@id="'
+                    f'ContentPlaceHolder1_countryRepeater_countryName_{stt}"]',
+                )
+                tinh_trang = khu_vuc.find_element(
+                    by='xpath',
+                    value='.//span[@id="ContentPlaceHolder1_countryRepeater'
+                    f'_countryStatus_{stt}"]',
+                )
+                LOGGER.info(
+                    '%s: %s (%s)',
+                    stt,
+                    ten_khu_vuc.text,
+                    tinh_trang.text,
+                )
+                if tinh_trang.text.lower() != 'closed':
+                    LOGGER.info('Việt nam mở')
+                    while True:
+                        LOGGER.info('Gửi thông báo qua telegram')
+                        PARAMS = {
+                            'chat_id': CHAT_ID,
+                            'text': 'VIET_NAM_MỞ_CỔNG',
+                            }
+                        requests.post(url=TELE_URL, data=PARAMS)
+
+                    LOGGER.info('Phát nhạc')
+                    if system() == 'Windows':
+                        winsound.PlaySound('nhac.wav', winsound.SND_FILENAME)
+                    LOGGER.info('Xong')
+            else:
+                LOGGER.info('Đợi %ds thử lại', SLEEP_TIME)
+                sleep(SLEEP_TIME)
+                LOGGER.info('Thử lại')
+                _driver.refresh()
+
     input('Nhập enter để thoát: ')
     return _driver
 
@@ -520,6 +561,5 @@ if __name__ == '__main__':
                     winsound.PlaySound('nhac.wav', winsound.SND_FILENAME)
                 LOGGER.info('Xong')
     finally:
-        input()
         if DRIVER:
             DRIVER.close()
