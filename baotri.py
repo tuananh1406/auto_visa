@@ -4,6 +4,7 @@
 '''
 import os
 from platform import system
+import sys
 
 from time import sleep
 from datetime import datetime
@@ -493,8 +494,11 @@ if __name__ == '__main__':
     LOGGER.info('*' * 50)
     LOGGER.info('Chạy chương trình')
 
+    if len(sys.argv) > 1:
+        CONFIG_FILE = sys.argv[1]
+
     if os.path.exists(CONFIG_FILE):
-        LOGGER.info('Load config')
+        LOGGER.info('Load config từ file: %s', CONFIG_FILE)
         CONFIG = ConfigParser()
         CONFIG.read(CONFIG_FILE)
         BOT_TELE = CONFIG.get(TELE_CONF, 'BOT_TELE')
