@@ -34,7 +34,7 @@ CONFIG_FILE = 'config.conf'
 TELE_CONF = 'tele_config_2'
 ALARM = False
 TASK_ID = 1
-SLEEP_TIME = 90
+SLEEP_TIME = 30
 
 
 def chay_trinh_duyet(browser='chrome', headless=True):
@@ -335,29 +335,30 @@ def visa2(_driver, url):
     LOGGER.info('Apply vào: %s', tieu_de.text)
     duong_dan.click()
 
-    # Lấy thông tin khu vực được phép apply
-    ds_khu_vuc = tam_ngung_va_tim_danh_sach(
-        _driver,
-        '//div[@class="category-item"]',
-    )
-    LOGGER.info('Tìm được %d khu vực', len(ds_khu_vuc))
-
-    LOGGER.info('Bảng danh sách tình trạng các khu vực:')
-    for stt, khu_vuc in enumerate(ds_khu_vuc):
-        ten_khu_vuc = khu_vuc.find_element(
-            by='xpath',
-            value='.//span[@id="'
-            f'ContentPlaceHolder1_countryRepeater_countryName_{stt}"]',
-        )
-        tinh_trang = khu_vuc.find_element(
-            by='xpath',
-            value='.//span[@id="'
-            f'ContentPlaceHolder1_countryRepeater_countryStatus_{stt}"]',
-        )
-        LOGGER.info('%s: %s (%s)', stt, ten_khu_vuc.text, tinh_trang.text)
-
     # Kiểm tra location Việt Nam
     while True:
+
+        # Lấy thông tin khu vực được phép apply
+        ds_khu_vuc = tam_ngung_va_tim_danh_sach(
+            _driver,
+            '//div[@class="category-item"]',
+        )
+        LOGGER.info('Tìm được %d khu vực', len(ds_khu_vuc))
+
+        LOGGER.info('Bảng danh sách tình trạng các khu vực:')
+        for stt, khu_vuc in enumerate(ds_khu_vuc):
+            ten_khu_vuc = khu_vuc.find_element(
+                by='xpath',
+                value='.//span[@id="'
+                f'ContentPlaceHolder1_countryRepeater_countryName_{stt}"]',
+            )
+            tinh_trang = khu_vuc.find_element(
+                by='xpath',
+                value='.//span[@id="'
+                f'ContentPlaceHolder1_countryRepeater_countryStatus_{stt}"]',
+            )
+            LOGGER.info('%s: %s (%s)', stt, ten_khu_vuc.text, tinh_trang.text)
+
         stt_apply = 44
         for stt, khu_vuc in enumerate(ds_khu_vuc):
             if stt == stt_apply:
@@ -391,13 +392,13 @@ def visa2(_driver, url):
                     if system() == 'Windows':
                         winsound.PlaySound('nhac.wav', winsound.SND_FILENAME)
                     LOGGER.info('Xong')
-            else:
-                LOGGER.info('Đợi %ds thử lại', SLEEP_TIME)
-                sleep(SLEEP_TIME)
-                LOGGER.info('Thử lại')
-                _driver.refresh()
+                else:
+                    LOGGER.info('Đợi %ds thử lại', SLEEP_TIME)
+                    sleep(SLEEP_TIME)
+                    LOGGER.info('Thử lại')
+                    _driver.refresh()
+                    continue
 
-    input('Nhập enter để thoát: ')
     return _driver
 
 
