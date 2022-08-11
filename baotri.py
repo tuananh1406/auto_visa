@@ -28,7 +28,6 @@ from common_utils import (
 
 
 TESTING = None
-# URL = 'https://gleam.io/L8Tok/lixinft-giveaway'
 NAME = 'tool_auto'
 CONFIG_FILE = 'config.conf'
 TELE_CONF = 'tele_config_2'
