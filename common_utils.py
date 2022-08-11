@@ -2,6 +2,10 @@
 import logging
 import sentry_sdk
 import requests
+from platform import system
+
+if system() == 'Windows':
+    import winsound
 
 from datetime import datetime
 
@@ -53,20 +57,28 @@ def thiet_lap_logging(testing=None):
 def tam_ngung_den_khi(driver, _xpath):
     '''Hàm tạm ngưng đến khi xuất hiện đường dẫn xpath
     '''
-    _tam_ngung = WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((
-            By.XPATH,
-            _xpath,
-        )),
-    )
-    return _tam_ngung
+    try:
+        _tam_ngung = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((
+                By.XPATH,
+                _xpath,
+            )),
+        )
+        return _tam_ngung
+    except Exception as error:
+        logging.exception(error)
+        return driver
 
 
 def tam_ngung_va_tim(driver, _xpath):
     '''Hàm tạm ngưng đến khi xuất hiện đường dẫn xpath và chọn xpath đó
     '''
-    tam_ngung_den_khi(driver, _xpath)
-    return driver.find_element(by='xpath', value=_xpath)
+    try:
+        tam_ngung_den_khi(driver, _xpath)
+        return driver.find_element(by='xpath', value=_xpath)
+    except Exception as error:
+        logging.exception(error)
+        return driver
 
 
 def tam_ngung_va_tim_danh_sach(driver, _xpath):
@@ -135,3 +147,12 @@ def gui_thong_bao_tele(bot_token=None, chat_id=None, text=None):
     logging.info('Gửi thông báo telegram')
     requests.post(url=tele_url, data=params)
     return True
+
+
+def phat_nhac_canh_bao(file_mp3=None):
+    '''Hàm phát nhạc cảnh báo'''
+    if file_mp3 and system() == 'Windows':
+        logging.info('Phát nhạc')
+        winsound.PlaySound('nhac.wav', winsound.SND_FILENAME)
+        return True
+    return None

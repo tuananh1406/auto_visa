@@ -3,31 +3,18 @@
 '''Tự động đăng nhập facebook
 '''
 import os
-from platform import system
 import sys
-import requests
 
 from time import sleep
 from datetime import datetime
 
 from configparser import ConfigParser
 
-if system() == 'Windows':
-    import winsound
-
 from common_utils import (
     thiet_lap_logging, tam_ngung_va_tim, tam_ngung_den_khi,
     tam_ngung_va_tim_danh_sach, chay_trinh_duyet, gui_thong_bao_tele,
+    phat_nhac_canh_bao,
 )
-
-
-TESTING = None
-NAME = 'tool_auto'
-CONFIG_FILE = 'config.conf'
-TELE_CONF = 'tele_config_2'
-ALARM = False
-TASK_ID = 1
-SLEEP_TIME = 30
 
 
 def visa2(_driver, url):
@@ -113,63 +100,60 @@ def visa2(_driver, url):
         LOGGER.info('Tìm được %d khu vực', len(ds_khu_vuc))
 
         LOGGER.info('Bảng danh sách tình trạng các khu vực:')
-        for stt, khu_vuc in enumerate(ds_khu_vuc):
-            ten_khu_vuc = khu_vuc.find_element(
-                by='xpath',
-                value='.//span[@id="'
-                f'ContentPlaceHolder1_countryRepeater_countryName_{stt}"]',
-            )
-            tinh_trang = khu_vuc.find_element(
-                by='xpath',
-                value='.//span[@id="'
-                f'ContentPlaceHolder1_countryRepeater_countryStatus_{stt}"]',
-            )
-            LOGGER.info('%s: %s (%s)', stt, ten_khu_vuc.text, tinh_trang.text)
+        # for stt, khu_vuc in enumerate(ds_khu_vuc):
+        #     ten_khu_vuc = khu_vuc.find_element(
+        #         by='xpath',
+        #         value='.//span[@id="'
+        #         f'ContentPlaceHolder1_countryRepeater_countryName_{stt}"]',
+        #     )
+        #     tinh_trang = khu_vuc.find_element(
+        #         by='xpath',
+        #         value='.//span[@id="'
+        #         f'ContentPlaceHolder1_countryRepeater_countryStatus_{stt}"]',
+        #     )
+        #     LOGGER.info('%s: %s (%s)', stt,
+        #     ten_khu_vuc.text, tinh_trang.text)
 
-        stt_apply = 44
-        for stt, khu_vuc in enumerate(ds_khu_vuc):
-            if stt == stt_apply:
-                ten_khu_vuc = khu_vuc.find_element(
-                    by='xpath',
-                    value='.//span[@id="'
-                    f'ContentPlaceHolder1_countryRepeater_countryName_{stt}"]',
-                )
-                tinh_trang = khu_vuc.find_element(
-                    by='xpath',
-                    value='.//span[@id="ContentPlaceHolder1_countryRepeater'
-                    f'_countryStatus_{stt}"]',
-                )
-                LOGGER.info(
-                    '%s: %s (%s)',
-                    stt,
-                    ten_khu_vuc.text,
-                    tinh_trang.text,
-                )
-                if tinh_trang.text.lower() != 'closed':
-                    LOGGER.info('Việt nam mở')
-                    while True:
-                        LOGGER.info('Gửi thông báo qua telegram')
-                        PARAMS = {
-                            'chat_id': CHAT_ID,
-                            'text': 'VIET_NAM_MỞ_CỔNG',
-                            }
-                        requests.post(url=TELE_URL, data=PARAMS)
-
-                    LOGGER.info('Phát nhạc')
-                    if system() == 'Windows':
-                        winsound.PlaySound('nhac.wav', winsound.SND_FILENAME)
-                    LOGGER.info('Xong')
-                else:
-                    LOGGER.info('Đợi %ds thử lại', SLEEP_TIME)
-                    sleep(SLEEP_TIME)
-                    LOGGER.info('Thử lại')
-                    _driver.refresh()
-                    continue
+        stt = 44
+        khu_vuc = ds_khu_vuc[stt]
+        ten_khu_vuc = khu_vuc.find_element(
+            by='xpath',
+            value='.//span[@id="'
+            f'ContentPlaceHolder1_countryRepeater_countryName_{stt}"]',
+        )
+        tinh_trang = khu_vuc.find_element(
+            by='xpath',
+            value='.//span[@id="ContentPlaceHolder1_countryRepeater'
+            f'_countryStatus_{stt}"]',
+        )
+        LOGGER.info(
+            '%s: %s (%s)',
+            stt,
+            ten_khu_vuc.text,
+            tinh_trang.text,
+        )
+        if tinh_trang.text.lower() != 'closed':
+            LOGGER.info('Việt nam mở')
+            while True:
+                text = 'VIET_NAM_MỞ_CỔNG'
+                gui_thong_bao_tele(BOT_TELE, CHAT_ID, text)
+                phat_nhac_canh_bao(FILE_MP3)
+        else:
+            LOGGER.info('Đợi %ds thử lại', SLEEP_TIME)
+            sleep(SLEEP_TIME)
+            LOGGER.info('Thử lại')
+            _driver.refresh()
+            continue
 
     return _driver
 
 
 if __name__ == '__main__':
+    CONFIG_FILE = 'config.conf'
+    TELE_CONF = 'tele_config_2'
+    ALARM = False
+    SLEEP_TIME = 30
+    FILE_MP3 = 'nhac.wav'
     THOI_GIAN_HIEN_TAI = datetime.now()
     LOGGER = thiet_lap_logging(testing=True)
     LOGGER.info('*' * 50)
@@ -184,14 +168,15 @@ if __name__ == '__main__':
         CONFIG.read(CONFIG_FILE)
         BOT_TELE = CONFIG.get(TELE_CONF, 'BOT_TELE')
         CHAT_ID = CONFIG.get(TELE_CONF, 'CHAT_ID')
-        TASK_ID = int(CONFIG.get('tool_config', 'TASK_ID'))
-        TELE_URL = f'https://api.telegram.org/bot{BOT_TELE}/sendMessage'
+    else:
+        LOGGER.info('Đường dẫn file không tồn tại: %s', CONFIG_FILE)
+        sys.exit()
     DRIVER = None
 
     try:
         LOGGER.info('Chạy chương trình')
-        MESSAGE = 'Chạy auto apply visa newzealand'
-        gui_thong_bao_tele(BOT_TELE, CHAT_ID, MESSAGE)
+        TEXT = 'Chạy auto apply visa newzealand'
+        gui_thong_bao_tele(BOT_TELE, CHAT_ID, TEXT)
         HEADLESS = CONFIG.get('tool_config', 'HEADLESS')
 
         DRIVER = chay_trinh_duyet(
@@ -210,17 +195,9 @@ if __name__ == '__main__':
         LOGGER.exception(error)
         if ALARM:
             while True:
-                LOGGER.info('Gửi thông báo qua telegram')
-                PARAMS = {
-                    'chat_id': CHAT_ID,
-                    'text': 'Không chạy được tool',
-                    }
-                requests.post(url=TELE_URL, data=PARAMS)
-
-                LOGGER.info('Phát nhạc')
-                if system() == 'Windows':
-                    winsound.PlaySound('nhac.wav', winsound.SND_FILENAME)
-                LOGGER.info('Xong')
+                TEXT = 'Không chạy được tool'
+                gui_thong_bao_tele(BOT_TELE, CHAT_ID, TEXT)
+                phat_nhac_canh_bao(FILE_MP3)
     finally:
         if DRIVER:
             DRIVER.close()
