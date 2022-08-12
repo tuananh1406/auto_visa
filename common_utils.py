@@ -8,13 +8,17 @@ if system() == 'Windows':
     import winsound
 
 from datetime import datetime
-
-from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.firefox import GeckoDriverManager
+
+from selenium import webdriver
+
 from selenium.webdriver.chrome.service import Service
+
 from selenium.webdriver.firefox.options import Options as firefox_options
+
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
@@ -64,6 +68,7 @@ def tam_ngung_den_khi(driver, _xpath):
                 _xpath,
             )),
         )
+        driver.execute_script("window.stop();")
         return _tam_ngung
     except Exception as error:
         logging.exception(error)
@@ -94,7 +99,10 @@ def chay_trinh_duyet(browser='chrome', headless=True):
     '''
     headless = bool(headless)
     logging.info('Chạy trình duyệt %s, headless=%s', browser, headless)
+
     if browser == 'chrome':
+        caps = DesiredCapabilities().CHROME
+        caps["pageLoadStrategy"] = "none"
         options = webdriver.ChromeOptions()
         options.headless = headless
         options.add_experimental_option(
@@ -107,9 +115,12 @@ def chay_trinh_duyet(browser='chrome', headless=True):
         _driver = webdriver.Chrome(
             options=options,
             service=service,
+            desired_capabilities=caps,
         )
 
     if browser == 'firefox':
+        caps = DesiredCapabilities().FIREFOX
+        caps["pageLoadStrategy"] = "none"
         options = firefox_options()
         options.headless = headless
         service = Service(GeckoDriverManager().install())
